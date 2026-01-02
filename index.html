@@ -9,16 +9,29 @@
     
     <style>
         :root {
+            /* الألوان الافتراضية (وضعية النهار) */
             --primary-color: #2d5a27;
             --accent-color: #8eb486;
             --bg-color: #f0f4f0;
             --card-bg: #ffffff;
             --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+        }
+
+        /* وضعية الليل التلقائية (تتغير بالـ JavaScript) */
+        .dark-mode {
+            --primary-color: #a8d5ba;
+            --accent-color: #4a7c59;
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --text-main: #e0e0e0;
+            --text-muted: #b0b0b0;
         }
 
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            transition: background-color 0.5s, color 0.5s;
         }
 
         body {
@@ -40,14 +53,29 @@
 
         header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-top: 20px;
+            margin-bottom: 20px;
         }
 
-        h1 {
+        .date-time-box {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        #currentTime {
+            font-size: 1.8rem;
             font-weight: 700;
             color: var(--primary-color);
-            margin-bottom: 10px;
+            margin-bottom: 5px;
+        }
+
+        #currentDate {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.6;
         }
 
         .progress-section {
@@ -60,7 +88,7 @@
 
         .progress-bar-container {
             background: #e0e0e0;
-            height: 12px;
+            height: 10px;
             border-radius: 10px;
             overflow: hidden;
             margin: 10px 0;
@@ -75,52 +103,46 @@
 
         .tasks-container {
             display: grid;
-            gap: 15px;
+            gap: 12px;
         }
 
         .task-card {
             background: var(--card-bg);
-            padding: 18px;
+            padding: 16px;
             border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            transition: all 0.3s ease;
             border: 2px solid transparent;
             cursor: pointer;
         }
 
-        .task-card:active {
-            transform: scale(0.98);
-        }
-
         .task-card.completed {
             border-color: var(--accent-color);
-            background-color: #f9fff9;
+            opacity: 0.8;
         }
 
         .task-info h3 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--primary-color);
         }
 
         .task-info p {
-            margin: 5px 0 0;
-            font-size: 0.85rem;
-            color: #7f8c8d;
+            margin: 4px 0 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
         }
 
         .check-circle {
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             border: 2px solid #ddd;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
         }
 
         .completed .check-circle {
@@ -131,27 +153,22 @@
         .completed .check-circle::after {
             content: '✓';
             color: white;
-            font-weight: bold;
+            font-size: 0.9rem;
         }
 
-        .completed .task-info h3 {
-            text-decoration: line-through;
-            color: #95a5a6;
-        }
-
-        /* زر إعادة التعيين */
         .reset-btn {
             position: fixed;
-            bottom: 20px;
+            bottom: 25px;
             left: 50%;
             transform: translateX(-50%);
             background: var(--primary-color);
             color: white;
             border: none;
-            padding: 12px 30px;
+            padding: 12px 40px;
             border-radius: 30px;
             font-family: 'Tajawal';
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-weight: bold;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
         }
     </style>
 </head>
@@ -159,13 +176,17 @@
 
     <div class="app-container">
         <header>
-            <h1>مُعين</h1>
-            <p>وِرْدك اليومي، خفيف على قلبك</p>
+            <h1 style="color: var(--primary-color); margin-bottom: 5px;">مُعين</h1>
+            
+            <div class="date-time-box">
+                <div id="currentTime">00:00:00</div>
+                <div id="currentDate">جاري تحديث التاريخ...</div>
+            </div>
         </header>
 
         <div class="progress-section">
-            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                <span>نسبة الإنجاز</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                <span>إنجازك اليوم</span>
                 <span id="progressText">0%</span>
             </div>
             <div class="progress-bar-container">
@@ -173,36 +194,53 @@
             </div>
         </div>
 
-        <div class="tasks-container" id="tasksList">
-            </div>
+        <div class="tasks-container" id="tasksList"></div>
 
-        <button class="reset-btn" onclick="resetTasks()">ابدأ يوم جديد</button>
+        <button class="reset-btn" onclick="resetTasks()">تصفير اليوم</button>
     </div>
 
     <script>
-        // قائمة الأذكار والمهام
         const myTasks = [
-            { id: 1, title: "أذكار الصباح", desc: "حصن يومك بنور الذكر" },
-            { id: 2, title: "صلاة الضحى", desc: "صلاة الأوابين (ركعتان فأكثر)" },
-            { id: 3, title: "ورد القرآن", desc: "لا تهجر المصحف ولو بصفحة" },
-            { id: 4, title: "أذكار المساء", desc: "طمأنينة لليلتك" },
-            { id: 5, title: "سورة الملك", desc: "المنجية من عذاب القبر" },
-            { id: 6, title: "الاستغفار", desc: "100 مرة فأكثر" }
+            { id: 1, title: "أذكار الصباح", desc: "نور لصباحك" },
+            { id: 2, title: "صلاة الضحى", desc: "صدقة عن مفاصلك" },
+            { id: 3, title: "ورد القرآن", desc: "حياة لقلبك" },
+            { id: 4, title: "أذكار المساء", desc: "حصن لمسائك" },
+            { id: 5, title: "سورة الملك", desc: "المنجية" },
+            { id: 6, title: "الاستغفار والصلاة على النبي", desc: "تفريج للهموم" }
         ];
 
-        // تحميل الحالة المحفوظة من المتصفح
         let completedTasks = JSON.parse(localStorage.getItem('muinProgress')) || [];
+
+        // تحديث الوقت والتاريخ والوضع الليلي
+        function updateDateTime() {
+            const now = new Date();
+            
+            // الوقت
+            const timeString = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('currentTime').innerText = timeString;
+            
+            // التاريخ (هجري وميلادي)
+            const hijri = now.toLocaleDateString('ar-SA-u-ca-islamic-uma', { day: 'numeric', month: 'long', year: 'numeric' });
+            const greg = now.toLocaleDateString('ar-SA', { day: 'numeric', month: 'long' });
+            document.getElementById('currentDate').innerHTML = `${hijri}<br>${greg}`;
+
+            // تبديل الوضع الليلي تلقائياً (من 6 مساءً لـ 6 صباحاً)
+            const hour = now.getHours();
+            if (hour >= 18 || hour < 6) {
+                document.body.classList.add('dark-mode');
+            } else {
+                document.body.classList.remove('dark-mode');
+            }
+        }
 
         function renderTasks() {
             const container = document.getElementById('tasksList');
             container.innerHTML = '';
-
             myTasks.forEach(task => {
                 const isDone = completedTasks.includes(task.id);
                 const card = document.createElement('div');
                 card.className = `task-card ${isDone ? 'completed' : ''}`;
                 card.onclick = () => toggleTask(task.id);
-                
                 card.innerHTML = `
                     <div class="task-info">
                         <h3>${task.title}</h3>
@@ -220,10 +258,10 @@
                 completedTasks = completedTasks.filter(item => item !== id);
             } else {
                 completedTasks.push(id);
-                // إضافة اهتزاز بسيط للجوال عند الضغط
-                if (navigator.vibrate) navigator.vibrate(50);
+                if (navigator.vibrate) navigator.vibrate(40);
             }
-            saveAndRefesh();
+            localStorage.setItem('muinProgress', JSON.stringify(completedTasks));
+            renderTasks();
         }
 
         function updateProgress() {
@@ -232,19 +270,16 @@
             document.getElementById('progressText').innerText = percent + '%';
         }
 
-        function saveAndRefesh() {
-            localStorage.setItem('muinProgress', JSON.stringify(completedTasks));
-            renderTasks();
-        }
-
         function resetTasks() {
-            if (confirm('هل تريد تصفير الإنجاز لبدء يوم جديد؟')) {
+            if (confirm('هل تريد مسح إنجاز اليوم؟')) {
                 completedTasks = [];
-                saveAndRefesh();
+                localStorage.setItem('muinProgress', JSON.stringify(completedTasks));
+                renderTasks();
             }
         }
 
-        // التشغيل عند فتح الصفحة
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
         renderTasks();
     </script>
 </body>
