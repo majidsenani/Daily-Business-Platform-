@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مُعين | وردك اليومي</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2d5a27;
+            --accent-color: #8eb486;
+            --bg-color: #f0f4f0;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-top: 20px;
+        }
+
+        h1 {
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .progress-section {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 12px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        #progressBar {
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            width: 0%;
+            height: 100%;
+            transition: width 0.4s ease-out;
+        }
+
+        .tasks-container {
+            display: grid;
+            gap: 15px;
+        }
+
+        .task-card {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+
+        .task-card:active {
+            transform: scale(0.98);
+        }
+
+        .task-card.completed {
+            border-color: var(--accent-color);
+            background-color: #f9fff9;
+        }
+
+        .task-info h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--primary-color);
+        }
+
+        .task-info p {
+            margin: 5px 0 0;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .check-circle {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .completed .check-circle {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .completed .check-circle::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+        }
+
+        .completed .task-info h3 {
+            text-decoration: line-through;
+            color: #95a5a6;
+        }
+
+        /* زر إعادة التعيين */
+        .reset-btn {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-family: 'Tajawal';
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <h1>مُعين</h1>
+            <p>وِرْدك اليومي، خفيف على قلبك</p>
+        </header>
+
+        <div class="progress-section">
+            <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                <span>نسبة الإنجاز</span>
+                <span id="progressText">0%</span>
+            </div>
+            <div class="progress-bar-container">
+                <div id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="tasks-container" id="tasksList">
+            </div>
+
+        <button class="reset-btn" onclick="resetTasks()">ابدأ يوم جديد</button>
+    </div>
+
+    <script>
+        // قائمة الأذكار والمهام
+        const myTasks = [
+            { id: 1, title: "أذكار الصباح", desc: "حصن يومك بنور الذكر" },
+            { id: 2, title: "صلاة الضحى", desc: "صلاة الأوابين (ركعتان فأكثر)" },
+            { id: 3, title: "ورد القرآن", desc: "لا تهجر المصحف ولو بصفحة" },
+            { id: 4, title: "أذكار المساء", desc: "طمأنينة لليلتك" },
+            { id: 5, title: "سورة الملك", desc: "المنجية من عذاب القبر" },
+            { id: 6, title: "الاستغفار", desc: "100 مرة فأكثر" }
+        ];
+
+        // تحميل الحالة المحفوظة من المتصفح
+        let completedTasks = JSON.parse(localStorage.getItem('muinProgress')) || [];
+
+        function renderTasks() {
+            const container = document.getElementById('tasksList');
+            container.innerHTML = '';
+
+            myTasks.forEach(task => {
+                const isDone = completedTasks.includes(task.id);
+                const card = document.createElement('div');
+                card.className = `task-card ${isDone ? 'completed' : ''}`;
+                card.onclick = () => toggleTask(task.id);
+                
+                card.innerHTML = `
+                    <div class="task-info">
+                        <h3>${task.title}</h3>
+                        <p>${task.desc}</p>
+                    </div>
+                    <div class="check-circle"></div>
+                `;
+                container.appendChild(card);
+            });
+            updateProgress();
+        }
+
+        function toggleTask(id) {
+            if (completedTasks.includes(id)) {
+                completedTasks = completedTasks.filter(item => item !== id);
+            } else {
+                completedTasks.push(id);
+                // إضافة اهتزاز بسيط للجوال عند الضغط
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
+            saveAndRefesh();
+        }
+
+        function updateProgress() {
+            const percent = Math.round((completedTasks.length / myTasks.length) * 100);
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressText').innerText = percent + '%';
+        }
+
+        function saveAndRefesh() {
+            localStorage.setItem('muinProgress', JSON.stringify(completedTasks));
+            renderTasks();
+        }
+
+        function resetTasks() {
+            if (confirm('هل تريد تصفير الإنجاز لبدء يوم جديد؟')) {
+                completedTasks = [];
+                saveAndRefesh();
+            }
+        }
+
+        // التشغيل عند فتح الصفحة
+        renderTasks();
+    </script>
+</body>
+</html>
